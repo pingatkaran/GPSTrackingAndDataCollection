@@ -14,7 +14,8 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.MutableLiveData
 import com.app.core.Constants
 import com.app.core.TrackingUtils
-import com.app.tracking.R
+import com.app.data.database.TripEntity
+import com.app.data.repository.TripRepository
 import com.google.android.gms.location.*
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +36,9 @@ class TrackingService : LifecycleService() {
 
     @Inject
     lateinit var baseNotificationBuilder: NotificationCompat.Builder
+
+    @Inject
+    lateinit var tripRepository: TripRepository
 
     private lateinit var curNotificationBuilder: NotificationCompat.Builder
 
@@ -80,6 +84,17 @@ class TrackingService : LifecycleService() {
         Log.d(TAG, "Killing service")
         serviceKilled = true
         pauseService()
+        // Save the trip before killing the service
+        serviceScope.launch(Dispatchers.IO) {
+            val trip = TripEntity(
+                startTime = timeStarted,
+                endTime = System.currentTimeMillis(),
+                distance = distanceInMeters.value?.toFloat() ?: 0f,
+                duration = timeRunInMillis.value ?: 0L
+            )
+            tripRepository.insertTrip(trip)
+            Log.d(TAG, "Trip saved: $trip")
+        }
         postInitialValues()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

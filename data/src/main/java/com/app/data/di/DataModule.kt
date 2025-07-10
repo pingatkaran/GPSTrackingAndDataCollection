@@ -1,6 +1,7 @@
 package com.app.data.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.room.Room
 import com.app.data.database.AppDatabase
 import com.app.data.database.LocationDao
@@ -19,12 +20,22 @@ object DataModule {
 
     @Provides
     @Singleton
+    fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
+        return context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+    }
+
+    @Provides
+    @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "gps_tracking_database"
-        ).build()
+        )
+            // If you still see the error, you can add .fallbackToDestructiveMigration()
+            // This will clear the database on a schema change.
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

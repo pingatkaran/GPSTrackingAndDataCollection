@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.GPSTrackingDataCollectionApp" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.GPSTrackingDataCollectionApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@android:color/white</item>
+        <!-- Make status bar icons dark -->
+        <item name="android:windowLightStatusBar">true</item>
+        <!-- Enable edge-to-edge -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
 </resources>

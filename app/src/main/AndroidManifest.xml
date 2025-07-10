@@ -23,7 +23,7 @@ xmlns:tools="http://schemas.android.com/tools">
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="API" />
+            android:value="AIzaSyBZvgm5gVxiVs3faV8qS6ESH0jFgDOsDFg" />
 
     <activity
         android:name=".MainActivity"
