@@ -3,6 +3,7 @@ package com.app.tracking
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+private const val TAG = "TrackingScreen"
 
 @Composable
 fun TrackingScreen(
@@ -59,7 +62,6 @@ fun TrackingScreen(
         position = CameraPosition.fromLatLngZoom(LatLng(22.6, 72.8), 10f)
     }
 
-    // This enables the blue dot and the button to center on it
     val mapProperties = MapProperties(
         isMyLocationEnabled = hasLocationPermission
     )
@@ -139,29 +141,22 @@ fun TrackingScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
+                    val buttonText = if (isTracking) "Pause" else if (timeRunInMillis > 0L) "Resume" else "Start"
                     Button(
                         onClick = {
-                            sendCommandToService(Constants.ACTION_START_OR_RESUME_SERVICE, context)
-                        },
-                        enabled = !isTracking
+                            Log.d(TAG, "$buttonText button clicked")
+                            val action = if (isTracking) Constants.ACTION_PAUSE_SERVICE else Constants.ACTION_START_OR_RESUME_SERVICE
+                            sendCommandToService(action, context)
+                        }
                     ) {
-                        Text("Start")
-                    }
-                    Button(
-                        onClick = {
-                            if (isTracking) {
-                                sendCommandToService(Constants.ACTION_PAUSE_SERVICE, context)
-                            } else {
-                                sendCommandToService(Constants.ACTION_START_OR_RESUME_SERVICE, context)
-                            }
-                        },
-                        enabled = isTracking || timeRunInMillis > 0L
-                    ) {
-                        Text(text = if (!isTracking && timeRunInMillis > 0L) "Resume" else "Pause")
+                        Text(text = buttonText)
                     }
                     if (isTracking || timeRunInMillis > 0) {
                         Button(
-                            onClick = { sendCommandToService(Constants.ACTION_STOP_SERVICE, context) },
+                            onClick = {
+                                Log.d(TAG, "Stop button clicked")
+                                sendCommandToService(Constants.ACTION_STOP_SERVICE, context)
+                            },
                         ) {
                             Text("Stop")
                         }
@@ -193,6 +188,7 @@ fun MetricText(label: String, value: String) {
 }
 
 private fun sendCommandToService(action: String, context: Context) {
+    Log.d("sendCommandToService", "Sending action: $action")
     Intent(context, TrackingService::class.java).also {
         it.action = action
         context.startService(it)
