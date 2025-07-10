@@ -21,9 +21,9 @@ xmlns:tools="http://schemas.android.com/tools">
     android:supportsRtl="true"
     android:theme="@style/Theme.GPSTrackingDataCollectionApp">
 
-    <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyBZvgm5gVxiVs3faV8qS6ESH0jFgDOsDFg" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="API" />
 
     <activity
         android:name=".MainActivity"
