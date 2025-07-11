@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -81,7 +82,7 @@ fun TrackingScreen(
 ) {
     val context = LocalContext.current
 
-    // ✨ FIX 1: Check for permission status synchronously on initialization
+    // Check for permission status
     var hasLocationPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -91,17 +92,19 @@ fun TrackingScreen(
         )
     }
 
+    // Track if we've requested permissions to avoid repeated requests
+    var permissionRequested by remember { mutableStateOf(false) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // Check if the crucial location permission was granted
-        hasLocationPermission =
-            permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: hasLocationPermission
+        hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        permissionRequested = true
     }
 
-    // ✨ FIX 2: Only launch the permission request if we don't already have permission
-    LaunchedEffect(key1 = hasLocationPermission) {
-        if (!hasLocationPermission) {
+    // Request permissions only once if we don't have them
+    LaunchedEffect(Unit) {
+        if (!hasLocationPermission && !permissionRequested) {
             permissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -149,7 +152,7 @@ fun TrackingScreen(
                             )
                         }
                         Text(
-                            "GPS Tracker",
+                            "Tracking Screen",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = PrimaryPurple
@@ -167,7 +170,9 @@ fun TrackingScreen(
                 TrackingScreenContent(
                     modifier = Modifier.fillMaxSize(),
                     viewModel = viewModel,
-                    onSendCommand = { action -> sendCommandToService(action, context) }
+                    onSendCommand = { action ->
+                        sendCommandToService(action, context)
+                    }
                 )
             } else {
                 Column(
@@ -203,6 +208,21 @@ fun TrackingScreen(
                         color = NeutralGray,
                         modifier = Modifier.padding(16.dp)
                     )
+
+                    // Add a button to manually request permissions again
+                    TextButton(
+                        onClick = {
+                            permissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                )
+                            )
+                        }
+                    ) {
+                        Text("Grant Permission", color = PrimaryPurple)
+                    }
                 }
             }
         }
@@ -373,7 +393,11 @@ fun Controls(isTracking: Boolean, hasStarted: Boolean, onSendCommand: (String) -
     ) {
         // Show Start button only if tracking has not started yet
         if (!hasStarted) {
-            TextButton(onClick = { onSendCommand(Constants.ACTION_START_OR_RESUME_SERVICE) }) {
+            TextButton(
+                onClick = {
+                    onSendCommand(Constants.ACTION_START_OR_RESUME_SERVICE)
+                }
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FaIcon(
                         faIcon = FaIcons.Play,
@@ -464,7 +488,6 @@ fun Controls(isTracking: Boolean, hasStarted: Boolean, onSendCommand: (String) -
         }
     }
 }
-
 
 @Composable
 fun MetricDisplay(label: String, value: String, unit: String, color: Color) {

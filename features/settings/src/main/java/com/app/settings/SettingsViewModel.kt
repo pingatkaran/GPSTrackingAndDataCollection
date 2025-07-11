@@ -13,7 +13,7 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _isBackgroundTrackingEnabled = MutableStateFlow(
-        sharedPreferences.getBoolean("background_tracking_enabled", false)
+        sharedPreferences.getBoolean("background_tracking_enabled", true) // Default to true
     )
     val isBackgroundTrackingEnabled: StateFlow<Boolean> = _isBackgroundTrackingEnabled
 

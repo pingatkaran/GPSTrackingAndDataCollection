@@ -4,23 +4,24 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -46,6 +47,9 @@ val items = listOf(
     Screen.Settings
 )
 
+// Fancy color palette
+val PrimaryPurple = Color(0xFF6B46C1)
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +64,8 @@ class MainActivity : ComponentActivity() {
                 val view = LocalView.current
                 SideEffect {
                     val window = (view.context as ComponentActivity).window
-                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
+                        true
                 }
 
                 MainScreen()
@@ -74,14 +79,22 @@ fun MainScreen() {
     val navController = rememberNavController()
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            BottomAppBar(
+                modifier = Modifier
+                    .height(80.dp)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    ),
+                containerColor = Color.White,
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 items.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = null) },
-                        label = { Text(screen.label) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                    CustomNavigationBarItem(
+                        screen = screen,
+                        isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -110,6 +123,42 @@ fun MainScreen() {
             composable(Screen.Settings.route) {
                 SettingsScreen()
             }
+        }
+    }
+}
+
+@Composable
+fun RowScope.CustomNavigationBarItem(
+    screen: Screen,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundAlpha = if (isSelected) 1f else 0f
+    val iconSize = if (isSelected) 32.dp else 24.dp
+
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(64.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    color = PrimaryPurple.copy(alpha = backgroundAlpha),
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = screen.icon,
+                contentDescription = null,
+                modifier = Modifier.size(iconSize),
+                tint = if (isSelected) Color.White else PrimaryPurple
+            )
         }
     }
 }

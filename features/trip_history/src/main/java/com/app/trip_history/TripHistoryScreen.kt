@@ -93,12 +93,21 @@ fun TripHistoryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Trip History",
-                        fontSize = 20.sp, // Adjusted size
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FaIcon(
+                            faIcon = FaIcons.History,
+                            tint = PrimaryPurple
+                        )
+                        Text(
+                            "Trip History",
+                            fontSize = 20.sp, // Adjusted size
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryPurple
+                        )
+                    }
                 },
                 actions = {
                     IconButton(

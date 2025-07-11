@@ -1,3 +1,4 @@
+
 package com.app.tracking
 
 import android.annotation.SuppressLint
@@ -6,6 +7,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.location.Location
 import android.os.Looper
 import android.util.Log
@@ -39,9 +41,13 @@ class TrackingService : LifecycleService() {
     @Inject
     lateinit var tripRepository: TripRepository
 
+    @Inject
+    lateinit var sharedPreferences: SharedPreferences
+
     private lateinit var curNotificationBuilder: NotificationCompat.Builder
 
     private var serviceKilled = false
+    private var isFirstRun = true
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
@@ -69,6 +75,7 @@ class TrackingService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "Service onCreate")
         curNotificationBuilder = baseNotificationBuilder
         postInitialValues()
 
@@ -100,14 +107,19 @@ class TrackingService : LifecycleService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
         intent?.let {
             when (it.action) {
                 Constants.ACTION_START_OR_RESUME_SERVICE -> {
                     Log.d(TAG, "Received Start or Resume Service action")
-                    if (isTracking.value == false) {
+                    if (isFirstRun) {
+                        Log.d(TAG, "First run - starting foreground service")
                         startForegroundService()
-                        startTimer()
+                        isFirstRun = false
+                    } else {
+                        Log.d(TAG, "Resuming tracking")
                     }
+                    startTimer()
                 }
                 Constants.ACTION_PAUSE_SERVICE -> {
                     Log.d(TAG, "Received Pause Service action")
@@ -128,16 +140,22 @@ class TrackingService : LifecycleService() {
     }
 
     private fun startTimer() {
-        // This check prevents adding a new empty line when resuming
+        Log.d(TAG, "Starting timer, current isTracking: ${isTracking.value}")
+
+        // Add empty polyline if needed
         if (pathPoints.value.isNullOrEmpty() || pathPoints.value?.last()?.isNotEmpty() == true) {
             addEmptyPolyline()
         }
+
+        // Set tracking to true
         isTracking.postValue(true)
         timeStarted = System.currentTimeMillis()
+
         serviceScope.launch {
             while (isTracking.value == true) {
                 lapTime = System.currentTimeMillis() - timeStarted
                 timeRunInMillis.postValue(timeRun + lapTime)
+
                 if (timeRunInMillis.value!! >= lastSecondTimestamp + 1000L) {
                     curNotificationBuilder.setContentText(
                         TrackingUtils.getFormattedStopWatchTime(timeRunInMillis.value!!)
@@ -149,18 +167,35 @@ class TrackingService : LifecycleService() {
                 delay(50L)
             }
             timeRun += lapTime
+            Log.d(TAG, "Timer stopped, total time: $timeRun")
         }
     }
 
     @SuppressLint("MissingPermission")
     private fun updateLocationTracking(isTracking: Boolean) {
+        Log.d(TAG, "updateLocationTracking called with: $isTracking")
+
         if (isTracking) {
+            val isBackgroundTrackingEnabled = sharedPreferences.getBoolean("background_tracking_enabled", true)
+            if (!isBackgroundTrackingEnabled) {
+                Log.d(TAG, "Background tracking disabled, not starting location updates")
+                return
+            }
+
             Log.d(TAG, "Starting location updates")
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000L)
+            val locationUpdateInterval = sharedPreferences.getLong("location_update_interval", 5000L)
+
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, locationUpdateInterval)
                 .setWaitForAccurateLocation(false)
-                .setMinUpdateIntervalMillis(2000L)
+                .setMinUpdateIntervalMillis(locationUpdateInterval / 2)
+                .setMaxUpdateDelayMillis(locationUpdateInterval * 2)
                 .build()
-            fusedLocationProviderClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+
+            fusedLocationProviderClient.requestLocationUpdates(
+                request,
+                locationCallback,
+                Looper.getMainLooper()
+            )
         } else {
             Log.d(TAG, "Stopping location updates")
             fusedLocationProviderClient.removeLocationUpdates(locationCallback)
@@ -170,25 +205,44 @@ class TrackingService : LifecycleService() {
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             super.onLocationResult(result)
+            Log.d(TAG, "Location result received, isTracking: ${isTracking.value}")
+
             if (isTracking.value == true) {
                 result.locations.let { locations ->
                     for (location in locations) {
-                        Log.d(TAG, "New location: ${location.latitude}, ${location.longitude}")
-                        addPathPoint(location)
-                        speedInKMH.postValue(location.speed * 3.6f)
+                        Log.d(TAG, "New location: ${location.latitude}, ${location.longitude}, accuracy: ${location.accuracy}")
+
+                        // Only add location if accuracy is reasonable (less than 50 meters)
+                        if (location.accuracy < 50f) {
+                            addPathPoint(location)
+                            speedInKMH.postValue(location.speed * 3.6f)
+                        } else {
+                            Log.d(TAG, "Location accuracy too low: ${location.accuracy}, skipping")
+                        }
                     }
                 }
             }
+        }
+
+        override fun onLocationAvailability(locationAvailability: LocationAvailability) {
+            super.onLocationAvailability(locationAvailability)
+            Log.d(TAG, "Location availability: ${locationAvailability.isLocationAvailable}")
         }
     }
 
     private fun addPathPoint(location: Location?) {
         location ?: return
-        val currentPath = pathPoints.value?.lastOrNull()
-        if (currentPath != null) {
+
+        val currentPathPoints = pathPoints.value
+        if (currentPathPoints != null && currentPathPoints.isNotEmpty()) {
+            val currentPath = currentPathPoints.last()
             currentPath.add(location)
-            pathPoints.postValue(pathPoints.value)
+            pathPoints.postValue(currentPathPoints)
             calculateDistance()
+        } else {
+            Log.d(TAG, "No path points available, creating new polyline")
+            addEmptyPolyline()
+            addPathPoint(location)
         }
     }
 
@@ -197,17 +251,23 @@ class TrackingService : LifecycleService() {
         pathPoints.value?.forEach { polyline ->
             if (polyline.size > 1) {
                 for (i in 0 until polyline.size - 1) {
-                    totalDistance += polyline[i].distanceTo(polyline[i+1])
+                    totalDistance += polyline[i].distanceTo(polyline[i + 1])
                 }
             }
         }
         distanceInMeters.postValue(totalDistance.toInt())
     }
 
-    private fun addEmptyPolyline() = pathPoints.value?.apply {
-        add(mutableListOf())
-        pathPoints.postValue(this)
-    } ?: pathPoints.postValue(mutableListOf(mutableListOf()))
+    private fun addEmptyPolyline() {
+        Log.d(TAG, "Adding empty polyline")
+        val currentPathPoints = pathPoints.value
+        if (currentPathPoints != null) {
+            currentPathPoints.add(mutableListOf())
+            pathPoints.postValue(currentPathPoints)
+        } else {
+            pathPoints.postValue(mutableListOf(mutableListOf()))
+        }
+    }
 
     private fun startForegroundService() {
         Log.d(TAG, "Starting foreground service")
