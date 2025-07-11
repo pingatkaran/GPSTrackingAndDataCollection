@@ -62,8 +62,11 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.runtime.livedata)
+    implementation(libs.fontawesomecompose)
 
-    // Google Maps
+
+
+// Google Maps
     implementation(libs.maps.compose)
     implementation(libs.play.services.location)
 
@@ -71,6 +74,7 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+
 
 
     testImplementation(libs.junit)

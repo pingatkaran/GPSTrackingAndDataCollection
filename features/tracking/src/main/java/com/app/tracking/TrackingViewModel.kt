@@ -19,6 +19,7 @@ class TrackingViewModel @Inject constructor(
     private val fusedLocationProviderClient: FusedLocationProviderClient
 ) : ViewModel() {
 
+    var isMapInitialized = false
     val isTracking = TrackingService.isTracking
     val pathPoints = TrackingService.pathPoints
     val timeRunInMillis = TrackingService.timeRunInMillis

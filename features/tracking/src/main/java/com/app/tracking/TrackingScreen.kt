@@ -3,32 +3,75 @@ package com.app.tracking
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import androidx.compose.runtime.saveable.rememberSaveable
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.core.Constants
 import com.app.core.TrackingUtils
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Polyline
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.guru.fontawesomecomposelib.FaIcon
+import com.guru.fontawesomecomposelib.FaIcons
+
+// Using the same fancy color palette
+val PrimaryPurple = Color(0xFF6B46C1)
+val SecondaryPink = Color(0xFFEC4899)
+val AccentBlue = Color(0xFF3B82F6)
+val AccentGreen = Color(0xFF10B981)
+val AccentRed = Color(0xFFEF4444)
+val NeutralGray = Color(0xFF6B7280)
+val LightBackground = Color(0xFFF8FAFC)
+val CardBackground = Color(0xFFFFFFFF)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,86 +80,130 @@ fun TrackingScreen(
     viewModel: TrackingViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    var hasLocationPermission by rememberSaveable { mutableStateOf(false) }
+
+    // ✨ FIX 1: Check for permission status synchronously on initialization
+    var hasLocationPermission by rememberSaveable {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        hasLocationPermission = permissions.values.all { it }
+        // Check if the crucial location permission was granted
+        hasLocationPermission =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: hasLocationPermission
     }
 
-    LaunchedEffect(true) {
-        permissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.POST_NOTIFICATIONS
-            )
-        )
-    }
-
-    // Top App Bar
-    Column(
-        modifier = modifier.fillMaxSize()
-    ) {
-        TopAppBar(
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.LocationOn,
-                        contentDescription = null,
-                        tint = Color(0xFF6B46C1),
-                        modifier = Modifier.size(20.dp) // Smaller icon
-                    )
-                    Text(
-                        "GPS Tracker",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp, // Smaller font size
-                        color = Color.Black
-                    )
-                }
-            },
-            actions = {
-                IconButton(
-                    onClick = { /* TODO: Dark mode toggle */ },
-                    modifier = Modifier.size(40.dp) // Smaller button
-                ) {
-                    Icon(
-                        Icons.Filled.Menu,
-                        contentDescription = "Menu",
-                        tint = Color(0xFF6B46C1),
-                        modifier = Modifier.size(20.dp) // Smaller icon
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White
-            ),
-            // This is the key fix - using windowInsets = WindowInsets(0.dp) removes extra padding
-            windowInsets = WindowInsets(0.dp)
-        )
-
-        // Content
-        if (hasLocationPermission) {
-            TrackingScreenContent(
-                modifier = Modifier.fillMaxSize(),
-                viewModel = viewModel,
-                onSendCommand = { action -> sendCommandToService(action, context) }
-            )
-        } else {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    "Location permission is needed to track your trips.",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(16.dp)
+    // ✨ FIX 2: Only launch the permission request if we don't already have permission
+    LaunchedEffect(key1 = hasLocationPermission) {
+        if (!hasLocationPermission) {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS
                 )
+            )
+        }
+    }
+
+    // Background with light color
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(LightBackground)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            TopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            PrimaryPurple.copy(alpha = 0.1f),
+                                            SecondaryPink.copy(alpha = 0.05f)
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.LocationOn,
+                                contentDescription = null,
+                                tint = PrimaryPurple,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Text(
+                            "GPS Tracker",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = PrimaryPurple
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                ),
+                windowInsets = WindowInsets(0.dp)
+            )
+
+            // Content
+            if (hasLocationPermission) {
+                TrackingScreenContent(
+                    modifier = Modifier.fillMaxSize(),
+                    viewModel = viewModel,
+                    onSendCommand = { action -> sendCommandToService(action, context) }
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        PrimaryPurple.copy(alpha = 0.1f),
+                                        SecondaryPink.copy(alpha = 0.05f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.LocationOn,
+                            contentDescription = null,
+                            tint = PrimaryPurple,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Location permission is needed to track your trips.",
+                        textAlign = TextAlign.Center,
+                        color = NeutralGray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
         }
     }
@@ -139,11 +226,14 @@ fun TrackingScreenContent(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.getLastKnownLocation()?.let {
-            cameraPositionState.animate(
-                update = CameraUpdateFactory.newLatLngZoom(it.toLatLng(), 15f),
-                durationMs = 1500
-            )
+        if (!viewModel.isMapInitialized) {
+            viewModel.getLastKnownLocation()?.let {
+                cameraPositionState.animate(
+                    update = CameraUpdateFactory.newLatLngZoom(it.toLatLng(), 15f),
+                    durationMs = 1500
+                )
+            }
+            viewModel.isMapInitialized = true
         }
     }
 
@@ -156,8 +246,8 @@ fun TrackingScreenContent(
     }
 
     Column(
-        modifier = modifier.padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Metrics Card
         MetricsCard(
@@ -171,14 +261,16 @@ fun TrackingScreenContent(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFE5E7EB)
+                containerColor = CardBackground
             )
         ) {
             GoogleMap(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp)),
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(isMyLocationEnabled = true),
                 uiSettings = MapUiSettings(
@@ -190,8 +282,8 @@ fun TrackingScreenContent(
                     if (polyline.size > 1) {
                         Polyline(
                             points = polyline.map { it.toLatLng() },
-                            color = Color(0xFF6B46C1),
-                            width = 10f
+                            color = PrimaryPurple,
+                            width = 12f
                         )
                     }
                 }
@@ -212,50 +304,59 @@ fun MetricsCard(speed: Float, distance: Int, elapsedTime: Long) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = CardBackground
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 5.dp, horizontal = 8.dp),
+                .padding(vertical = 16.dp, horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             MetricDisplay(
                 value = String.format("%.1f", speed),
                 unit = "km/h",
-                label = "SPEED"
+                label = "SPEED",
+                color = AccentBlue
             )
 
             // Vertical divider
-            Divider(
+            Box(
                 modifier = Modifier
-                    .height(25.dp)
-                    .width(1.dp),
-                color = Color(0xFFE5E7EB)
+                    .height(40.dp)
+                    .width(1.dp)
+                    .background(
+                        color = NeutralGray.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(0.5.dp)
+                    )
             )
 
             MetricDisplay(
                 value = String.format("%.1f", distance / 1000f),
                 unit = "km",
-                label = "DISTANCE"
+                label = "DISTANCE",
+                color = AccentGreen
             )
 
             // Vertical divider
-            Divider(
+            Box(
                 modifier = Modifier
-                    .height(25.dp)
-                    .width(1.dp),
-                color = Color(0xFFE5E7EB)
+                    .height(40.dp)
+                    .width(1.dp)
+                    .background(
+                        color = NeutralGray.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(0.5.dp)
+                    )
             )
 
             MetricDisplay(
                 value = TrackingUtils.getFormattedStopWatchTime(elapsedTime, false),
-                unit = "hh:mm",
-                label = "TIME"
+                unit = "time",
+                label = "DURATION",
+                color = PrimaryPurple
             )
         }
     }
@@ -266,105 +367,130 @@ fun Controls(isTracking: Boolean, hasStarted: Boolean, onSendCommand: (String) -
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 20.dp),
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Start/Play Button
-        FloatingActionButton(
-            onClick = {
-                if (!isTracking) {
-                    onSendCommand(Constants.ACTION_START_OR_RESUME_SERVICE)
+        // Show Start button only if tracking has not started yet
+        if (!hasStarted) {
+            TextButton(onClick = { onSendCommand(Constants.ACTION_START_OR_RESUME_SERVICE) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FaIcon(
+                        faIcon = FaIcons.Play,
+                        tint = AccentGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Start",
+                        color = AccentGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
-            },
-            shape = CircleShape,
-            containerColor = Color(0xFF4ADE80), // Green
-            contentColor = Color.White,
-            modifier = Modifier.size(64.dp),
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 6.dp,
-                pressedElevation = 8.dp
-            )
-        ) {
-            Icon(
-                Icons.Filled.PlayArrow,
-                contentDescription = "Start",
-                modifier = Modifier.size(30.dp)
-            )
+            }
         }
 
-        // Pause Button (Primary - Larger)
-        FloatingActionButton(
-            onClick = {
-                if (isTracking) {
-                    onSendCommand(Constants.ACTION_PAUSE_SERVICE)
+        // Show Pause and Stop buttons when tracking is active
+        if (isTracking) {
+            TextButton(onClick = { onSendCommand(Constants.ACTION_PAUSE_SERVICE) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FaIcon(
+                        faIcon = FaIcons.Pause,
+                        tint = PrimaryPurple,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Pause",
+                        color = PrimaryPurple,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
-            },
-            shape = CircleShape,
-            containerColor = Color(0xFF6B46C1), // Purple
-            contentColor = Color.White,
-            modifier = Modifier.size(80.dp),
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 8.dp,
-                pressedElevation = 12.dp
-            )
-        ) {
-            Icon(
-                Icons.Filled.Menu,
-                contentDescription = "Pause",
-                modifier = Modifier.size(36.dp)
-            )
+            }
+            TextButton(onClick = { onSendCommand(Constants.ACTION_STOP_SERVICE) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FaIcon(
+                        faIcon = FaIcons.Stop,
+                        tint = AccentRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Stop",
+                        color = AccentRed,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+            }
         }
 
-        // Stop Button
-        FloatingActionButton(
-            onClick = {
-                if (hasStarted) {
-                    onSendCommand(Constants.ACTION_STOP_SERVICE)
+        // Show Resume and Stop buttons when tracking is paused
+        if (!isTracking && hasStarted) {
+            TextButton(onClick = { onSendCommand(Constants.ACTION_START_OR_RESUME_SERVICE) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FaIcon(
+                        faIcon = FaIcons.Play,
+                        tint = AccentGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Resume",
+                        color = AccentGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
-            },
-            shape = CircleShape,
-            containerColor = Color(0xFFEF4444), // Red
-            contentColor = Color.White,
-            modifier = Modifier.size(64.dp),
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 6.dp,
-                pressedElevation = 8.dp
-            )
-        ) {
-            Icon(
-                Icons.Filled.Menu,
-                contentDescription = "Stop",
-                modifier = Modifier.size(24.dp)
-            )
+            }
+            TextButton(onClick = { onSendCommand(Constants.ACTION_STOP_SERVICE) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FaIcon(
+                        faIcon = FaIcons.Stop,
+                        tint = AccentRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Stop",
+                        color = AccentRed,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+            }
         }
     }
 }
 
+
 @Composable
-fun MetricDisplay(label: String, value: String, unit: String) {
+fun MetricDisplay(label: String, value: String, unit: String, color: Color) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(horizontal = 4.dp)
+        modifier = Modifier.padding(horizontal = 8.dp)
     ) {
         Text(
             text = label,
             fontSize = 10.sp,
-            color = Color(0xFF6B7280),
+            color = NeutralGray,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.5.sp
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
-            fontSize = 14.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF111827),
+            color = color,
             textAlign = TextAlign.Center
         )
         Text(
             text = unit,
             fontSize = 10.sp,
-            color = Color(0xFF6B7280),
+            color = NeutralGray,
             textAlign = TextAlign.Center
         )
     }
