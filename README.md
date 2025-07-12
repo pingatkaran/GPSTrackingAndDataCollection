@@ -8,6 +8,13 @@ A modern Android application built to demonstrate best practices in Android deve
 |:---:|:---:|:---:|
 | ![Tracking Screen](media/ss1.png) | ![Trip History](media/ss2.png) | ![Settings](media/ss3.png) |
 
+
+## 🎥 Video
+[
+<video src="media/video.mp4" controls width="100%" style="max-width:600px;">
+  Your browser does not support the video tag.
+</video>](https://github.com/user-attachments/assets/f12e74e6-2125-43de-8db0-2ea72218f6f9)
+
 ## ✨ Features
 
 - **Live GPS Tracking**: Track your location in real-time on Google Maps
