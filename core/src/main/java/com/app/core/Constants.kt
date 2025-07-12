@@ -12,4 +12,8 @@ object Constants {
     const val NOTIFICATION_CHANNEL_NAME = "Tracking"
     const val NOTIFICATION_ID = 1
 
+    const val NOTIFICATION_CHANNEL_INACTIVITY_ID = "inactivity_channel"
+    const val NOTIFICATION_CHANNEL_INACTIVITY_NAME = "Inactivity"
+    const val NOTIFICATION_INACTIVITY_ID = 2
+
 }
