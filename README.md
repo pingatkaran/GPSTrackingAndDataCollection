@@ -6,7 +6,7 @@ A modern Android application built to demonstrate best practices in Android deve
 
 | Tracking Screen | Trip History | Settings |
 |:---:|:---:|:---:|
-| ss1.png | ss2.png | ss3.png |
+| ![Tracking Screen](media/ss1.png) | ![Trip History](media/ss2.png) | ![Settings](media/ss3.png) |
 
 ## ✨ Features
 
