@@ -113,6 +113,7 @@ fun TripHistoryScreen(
                     IconButton(
                         onClick = { showDialog.value = true },
                         modifier = Modifier
+                            .padding(end = 10.dp) // Added margin to the right
                             .size(40.dp) // Adjusted size
                             .background(
                                 brush = Brush.linearGradient(
@@ -125,7 +126,7 @@ fun TripHistoryScreen(
                         FaIcon(
                             FaIcons.Share,
                             tint = Color.White,
-                            modifier = Modifier.size(18.dp) // Adjusted size
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 },
