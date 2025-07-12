@@ -13,6 +13,7 @@ appcompat = "1.7.1"
 material = "1.12.0"
 materialIconsExtended = "1.7.8"
 mockitoCore = "5.18.0"
+mockitoInline = "5.2.0" # Add this line
 room = "2.6.1"
 datastore = "1.1.1"
 navigationCompose = "2.7.7"
@@ -22,6 +23,8 @@ mapsCompose = "6.0.0"
 playServicesLocation = "21.3.0"
 lifecycleService = "2.6.1"
 runtimeLivedata = "1.6.8"
+coroutines = "1.8.0"
+mockitoKotlin = "5.2.1"
 
 
 [libraries]
@@ -53,9 +56,12 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.r
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
+mockito-inline = { module = "org.mockito:mockito-inline", version.ref = "mockitoInline" } # Add this line
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
 androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" } # Add this library
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
