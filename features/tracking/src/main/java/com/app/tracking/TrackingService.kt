@@ -35,9 +35,13 @@ import javax.inject.Inject
 
 private const val TAG = "TrackingService"
 
+/**
+ * A LifecycleService that runs in the background to track the user's location.
+ */
 @AndroidEntryPoint
 class TrackingService : LifecycleService() {
 
+    // Injected dependencies from Hilt modules.
     @Inject
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
@@ -87,6 +91,7 @@ class TrackingService : LifecycleService() {
         curNotificationBuilder = baseNotificationBuilder
         postInitialValues()
 
+        // When the `isTracking` state changes, this observer triggers the necessary actions.
         isTracking.observe(this) {
             Log.d(TAG, "isTracking value changed: $it")
             updateLocationTracking(it)
@@ -94,6 +99,9 @@ class TrackingService : LifecycleService() {
         }
     }
 
+    /**
+     * Handles the logic for stopping the service completely and calculates final data that should show in history
+     */
     private fun killService() {
         Log.d(TAG, "Killing service")
         serviceKilled = true
@@ -185,11 +193,11 @@ class TrackingService : LifecycleService() {
             }
 
             val isBackgroundTrackingEnabled =
-                sharedPreferences.getBoolean("background_tracking_enabled", true)
+                sharedPreferences.getBoolean(Constants.BACKGROUND_TRACKING_ENABLED, true)
             if (!isBackgroundTrackingEnabled) return
 
             val locationUpdateInterval =
-                sharedPreferences.getLong("location_update_interval", 5000L)
+                sharedPreferences.getLong(Constants.LOCATION_UPDATE_INTERVAL, 5000L)
 
             val request =
                 LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, locationUpdateInterval)
@@ -208,6 +216,9 @@ class TrackingService : LifecycleService() {
         }
     }
 
+    /**
+     * The callback that receives location updates from the FusedLocationProviderClient.
+     */
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             if (isTracking.value == true) {
@@ -217,7 +228,7 @@ class TrackingService : LifecycleService() {
                         if (distance < 10) { // Inactivity threshold (10 meters)
                             if (inactivityJob == null || !inactivityJob!!.isActive) {
                                 inactivityJob = serviceScope.launch {
-                                    delay(10000) // 10 seconds for testing
+                                    delay(60000)
                                     sendInactivityNotification()
                                     pauseService() // Pause instead of killing the service
                                 }
@@ -236,6 +247,9 @@ class TrackingService : LifecycleService() {
         }
     }
 
+    /**
+     * Creates and displays a notification to inform the user that tracking was paused due to inactivity.
+     */
     private fun sendInactivityNotification() {
         val resumeIntent = Intent(this, TrackingService::class.java).apply {
             action = Constants.ACTION_START_OR_RESUME_SERVICE
@@ -330,6 +344,9 @@ class TrackingService : LifecycleService() {
         }
     }
 
+    /**
+     * Creates the notification channel for the inactivity alerts.
+     */
     private fun createInactivityNotificationChannel(notificationManager: NotificationManager) {
         val channel = NotificationChannel(
             Constants.NOTIFICATION_CHANNEL_INACTIVITY_ID,
@@ -339,6 +356,9 @@ class TrackingService : LifecycleService() {
         notificationManager.createNotificationChannel(channel)
     }
 
+    /**
+     * Creates the notification channel for the main foreground service notification.
+     */
     private fun createNotificationChannel(notificationManager: NotificationManager) {
         val channel = NotificationChannel(
             Constants.NOTIFICATION_CHANNEL_ID,

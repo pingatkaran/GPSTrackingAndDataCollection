@@ -6,6 +6,11 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Data Access Object (DAO) for the 'locations' table.
+ * This interface defines all the database interactions (like queries and inserts)
+ * related to location data.
+ */
 @Dao
 interface LocationDao {
 

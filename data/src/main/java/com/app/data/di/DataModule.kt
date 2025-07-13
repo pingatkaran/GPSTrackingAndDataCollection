@@ -3,6 +3,7 @@ package com.app.data.di
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.room.Room
+import com.app.core.Constants
 import com.app.data.database.AppDatabase
 import com.app.data.database.LocationDao
 import com.app.data.database.TripDao
@@ -14,16 +15,27 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+/**
+ * This is a Dagger Hilt module. Think of it as a factory that knows how to create
+ * and provide all the dependencies related to our data layer.
+ */
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
 
+    /**
+     * Provides the SharedPreferences instance for the app.
+     */
     @Provides
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
-        return context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+        return context.getSharedPreferences(Constants.SETTINGS_PREFS, Context.MODE_PRIVATE)
     }
 
+    /**
+     * Provides the Room database instance.
+     */
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -32,22 +44,32 @@ object DataModule {
             AppDatabase::class.java,
             "gps_tracking_database"
         )
-            // If you still see the error, you can add .fallbackToDestructiveMigration()
-            // This will clear the database on a schema change.
             .fallbackToDestructiveMigration()
             .build()
     }
 
+    /**
+     * Provides the DAO for accessing Trip data.
+     */
     @Provides
     fun provideTripDao(appDatabase: AppDatabase): TripDao {
         return appDatabase.tripDao()
     }
 
+    /**
+     * Provides the DAO for accessing Location data.
+     */
     @Provides
     fun provideLocationDao(appDatabase: AppDatabase): LocationDao {
         return appDatabase.locationDao()
     }
 
+    /**
+     * Provides our main repository.
+     * ViewModels will talk to this repository, not directly to the DAOs. This keeps our
+     * architecture clean and makes it easy to test.
+     * Hilt provides the DAOs this repository needs in its constructor.
+     */
     @Provides
     @Singleton
     fun provideTripRepository(

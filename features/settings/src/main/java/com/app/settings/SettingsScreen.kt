@@ -27,6 +27,7 @@ val CardBackground = Color(0xFFFFFFFF)
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    // Collect state from the ViewModel's StateFlows.
     val isBackgroundTrackingEnabled by viewModel.isBackgroundTrackingEnabled.collectAsState()
     val locationUpdateInterval by viewModel.locationUpdateInterval.collectAsState()
 

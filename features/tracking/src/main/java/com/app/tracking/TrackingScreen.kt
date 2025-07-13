@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -82,7 +83,7 @@ fun TrackingScreen(
 ) {
     val context = LocalContext.current
 
-    // Check for permission status
+    // `rememberSaveable` ensures the state survives process death (e.g., screen rotation).
     var hasLocationPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -92,7 +93,7 @@ fun TrackingScreen(
         )
     }
 
-    // Track if we've requested permissions to avoid repeated requests
+    // State to prevent asking for permission multiple times if the user denies it.
     var permissionRequested by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -102,7 +103,8 @@ fun TrackingScreen(
         permissionRequested = true
     }
 
-    // Request permissions only once if we don't have them
+    // LaunchedEffect runs this block once when the composable enters the composition.
+    // It's the correct place for "fire-and-forget" logic like permission requests.
     LaunchedEffect(Unit) {
         if (!hasLocationPermission && !permissionRequested) {
             permissionLauncher.launch(
@@ -115,7 +117,6 @@ fun TrackingScreen(
         }
     }
 
-    // Background with light color
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -165,7 +166,6 @@ fun TrackingScreen(
                 windowInsets = WindowInsets(0.dp)
             )
 
-            // Content
             if (hasLocationPermission) {
                 TrackingScreenContent(
                     modifier = Modifier.fillMaxSize(),
@@ -519,10 +519,16 @@ fun MetricDisplay(label: String, value: String, unit: String, color: Color) {
     }
 }
 
-private fun android.location.Location.toLatLng(): LatLng {
+/**
+ * Extension function to easily convert Android's Location object to Google Maps' LatLng object.
+ */
+private fun Location.toLatLng(): LatLng {
     return LatLng(this.latitude, this.longitude)
 }
 
+/**
+ * Helper function to send a command (as an Intent action) to the TrackingService.
+ */
 private fun sendCommandToService(action: String, context: Context) {
     Intent(context, TrackingService::class.java).also {
         it.action = action

@@ -36,7 +36,6 @@ class TripHistoryViewModel @Inject constructor(
     }
 
     fun exportTripsToJson(context: Context, trips: List<TripEntity>) {
-        // A simple manual JSON serialization
         val jsonData = trips.joinToString(prefix = "[\n", postfix = "\n]", separator = ",\n") {
             """    {
         |        "id": ${it.id},
@@ -51,12 +50,11 @@ class TripHistoryViewModel @Inject constructor(
     private fun shareData(context: Context, fileName: String, mimeType: String, content: String) {
         try {
             val cachePath = File(context.cacheDir, "exports/")
-            cachePath.mkdirs() // Create the directory if it doesn't exist
+            cachePath.mkdirs()
 
             val file = File(cachePath, fileName)
             file.writeText(content)
 
-            // IMPORTANT: Replace "com.yourapp.package.fileprovider" with your actual authority
             val authority = "${context.packageName}.fileprovider"
             val fileUri = FileProvider.getUriForFile(context, authority, file)
 

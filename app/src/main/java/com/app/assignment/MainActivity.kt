@@ -47,7 +47,6 @@ val items = listOf(
     Screen.Settings
 )
 
-// Fancy color palette
 val PrimaryPurple = Color(0xFF6B46C1)
 
 @AndroidEntryPoint

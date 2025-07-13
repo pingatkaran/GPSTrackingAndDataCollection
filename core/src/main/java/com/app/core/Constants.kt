@@ -16,4 +16,9 @@ object Constants {
     const val NOTIFICATION_CHANNEL_INACTIVITY_NAME = "Inactivity"
     const val NOTIFICATION_INACTIVITY_ID = 2
 
+    //Settings Pref
+    const val SETTINGS_PREFS = "settings_prefs"
+    const val BACKGROUND_TRACKING_ENABLED = "background_tracking_enabled"
+    const val LOCATION_UPDATE_INTERVAL = "location_update_interval"
+
 }

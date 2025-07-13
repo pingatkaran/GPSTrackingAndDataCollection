@@ -7,12 +7,19 @@ import com.app.data.database.TripEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
+
+/**
+ * The Repository class acts for trip-related data.
+ * It abstracts the data sources from the rest of the app,
+ * like the ViewModels. This means the ViewModel doesn't know or care if the data
+ * is coming from a local database, a remote server, or a cache.
+ *
+ */
 class TripRepository @Inject constructor(
     private val tripDao: TripDao,
     private val locationDao: LocationDao,
 ) {
 
-    // Trip methods
     suspend fun insertTrip(trip: TripEntity): Long {
         return tripDao.insertTrip(trip)
     }
@@ -29,7 +36,6 @@ class TripRepository @Inject constructor(
         return tripDao.getTripById(tripId)
     }
 
-    // Location methods
     suspend fun insertLocation(location: LocationEntity) {
         locationDao.insertLocation(location)
     }

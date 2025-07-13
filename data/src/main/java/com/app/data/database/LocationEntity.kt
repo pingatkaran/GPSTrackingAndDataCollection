@@ -5,6 +5,10 @@ import androidx.room.ForeignKey
 import androidx.room.Index // Import Index
 import androidx.room.PrimaryKey
 
+/*
+ * Represents a single location data point recorded during a trip.
+ * This class defines the schema for the "locations" table in the database.
+ */
 @Entity(
     tableName = "locations",
     foreignKeys = [

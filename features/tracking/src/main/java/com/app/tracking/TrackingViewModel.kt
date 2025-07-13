@@ -23,13 +23,20 @@ class TrackingViewModel @Inject constructor(
     val isTracking = TrackingService.isTracking
     val pathPoints = TrackingService.pathPoints
     val timeRunInMillis = TrackingService.timeRunInMillis
-    val distanceInMeters = TrackingService.distanceInMeters // Expose distance
-    val speedInKMH = TrackingService.speedInKMH             // Expose speed
+    val distanceInMeters = TrackingService.distanceInMeters
+    val speedInKMH = TrackingService.speedInKMH
 
+    /**
+     * Saves a completed trip to the database via the repository.
+     * This is launched in the viewModelScope, which is a coroutine scope tied to the ViewModel's lifecycle
+     */
     fun saveTrip(trip: TripEntity) = viewModelScope.launch {
         tripRepository.insertTrip(trip)
     }
 
+    /*
+    *  Asynchronously fetches the last known location from the FusedLocationProviderClient.
+    */
     @SuppressLint("MissingPermission")
     suspend fun getLastKnownLocation(): Location? {
         return suspendCancellableCoroutine { continuation ->

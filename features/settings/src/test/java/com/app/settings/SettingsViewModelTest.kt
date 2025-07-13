@@ -1,4 +1,5 @@
 import android.content.SharedPreferences
+import com.app.core.Constants
 import com.app.settings.SettingsViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -36,7 +37,7 @@ class SettingsViewModelTest {
     fun `test updateBackgroundTracking`() = runTest {
         val isEnabled = true
         viewModel.updateBackgroundTracking(isEnabled)
-        verify(editor).putBoolean("background_tracking_enabled", isEnabled)
+        verify(editor).putBoolean(Constants.BACKGROUND_TRACKING_ENABLED, isEnabled)
         verify(editor).apply()
         assertEquals(isEnabled, viewModel.isBackgroundTrackingEnabled.first())
     }
@@ -45,7 +46,7 @@ class SettingsViewModelTest {
     fun `test updateLocationInterval`() = runTest {
         val interval = 10000L
         viewModel.updateLocationInterval(interval)
-        verify(editor).putLong("location_update_interval", interval)
+        verify(editor).putLong(Constants.LOCATION_UPDATE_INTERVAL, interval)
         verify(editor).apply()
         assertEquals(interval, viewModel.locationUpdateInterval.first())
     }

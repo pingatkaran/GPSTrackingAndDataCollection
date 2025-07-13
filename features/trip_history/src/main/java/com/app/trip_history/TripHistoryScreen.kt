@@ -56,7 +56,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
-// Fancy color palette
 val PrimaryPurple = Color(0xFF6B46C1)
 val SecondaryPink = Color(0xFFEC4899)
 val AccentBlue = Color(0xFF3B82F6)
@@ -113,8 +112,8 @@ fun TripHistoryScreen(
                     IconButton(
                         onClick = { showDialog.value = true },
                         modifier = Modifier
-                            .padding(end = 10.dp) // Added margin to the right
-                            .size(40.dp) // Adjusted size
+                            .padding(end = 10.dp)
+                            .size(40.dp)
                             .background(
                                 brush = Brush.linearGradient(
                                     colors = listOf(PrimaryPurple, SecondaryPink)
@@ -171,7 +170,7 @@ fun EmptyState() {
         ) {
             Box(
                 modifier = Modifier
-                    .size(80.dp) // Adjusted size
+                    .size(80.dp)
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -179,28 +178,28 @@ fun EmptyState() {
                                 SecondaryPink.copy(alpha = 0.05f)
                             )
                         ),
-                        shape = RoundedCornerShape(40.dp) // Adjusted for circle
+                        shape = RoundedCornerShape(40.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.ThumbUp,
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp), // Adjusted size
+                    modifier = Modifier.size(40.dp),
                     tint = PrimaryPurple
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp)) // Adjusted size
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "No trips recorded yet",
-                fontSize = 18.sp, // Adjusted size
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryPurple
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Start your first trip to see it here",
-                fontSize = 14.sp, // Adjusted size
+                fontSize = 14.sp,
                 color = NeutralGray
             )
         }
@@ -221,9 +220,8 @@ fun TripItem(trip: TripEntity) {
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp) // Adjusted padding
+            modifier = Modifier.padding(16.dp)
         ) {
-            // Header with gradient accent
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -235,7 +233,7 @@ fun TripItem(trip: TripEntity) {
                     Box(
                         modifier = Modifier
                             .width(4.dp)
-                            .height(24.dp) // Adjusted size
+                            .height(24.dp)
                             .background(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(PrimaryPurple, SecondaryPink)
@@ -246,33 +244,32 @@ fun TripItem(trip: TripEntity) {
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Trip #${trip.id}",
-                        fontSize = 16.sp, // Adjusted size
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryPurple
                     )
                 }
                 Text(
                     text = formatDate(trip.startTime),
-                    fontSize = 12.sp, // Adjusted size
+                    fontSize = 12.sp,
                     color = NeutralGray
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp)) // Adjusted size
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Started at ${formatStartTime(trip.startTime)}",
-                    fontSize = 12.sp, // Adjusted size
+                    fontSize = 12.sp,
                     color = NeutralGray
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp)) // Adjusted size
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Trip Statistics
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -321,25 +318,25 @@ fun TripStatItem(
     ) {
         Box(
             modifier = Modifier
-                .size(32.dp) // Adjusted size
+                .size(32.dp)
                 .background(
                     color = color.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(10.dp) // Adjusted radius
+                    shape = RoundedCornerShape(10.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
             FaIcon(
                 faIcon = icon,
                 tint = color,
-                modifier = Modifier.size(24.dp) // Adjusted size
+                modifier = Modifier.size(24.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp)) // Adjusted size
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            text = label.uppercase(), // Make consistent with tracking screen
-            fontSize = 10.sp, // Adjusted size
+            text = label.uppercase(),
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.5.sp,
             color = NeutralGray
@@ -349,7 +346,7 @@ fun TripStatItem(
 
         Text(
             text = value,
-            fontSize = 16.sp, // Explicit size
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = color
         )
