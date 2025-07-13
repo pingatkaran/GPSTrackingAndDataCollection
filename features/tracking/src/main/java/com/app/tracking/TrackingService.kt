@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import com.app.core.Constants
 import com.app.core.TrackingUtils
 import com.app.data.database.TripEntity
@@ -64,12 +65,12 @@ class TrackingService : LifecycleService() {
     private var timeRun = 0L
     private var lapTime = 0L
     private var timeStarted = 0L
-    private var lastSecondTimestamp = 0L
     private var lastLocation: Location? = null
     private var inactivityJob: Job? = null
 
     companion object {
         val timeRunInMillis = MutableLiveData<Long>()
+        val timeRunInSeconds = MutableLiveData<Long>()
         val isTracking = MutableLiveData<Boolean>()
         val pathPoints = MutableLiveData<MutableList<MutableList<Location>>>()
         val distanceInMeters = MutableLiveData<Int>()
@@ -79,8 +80,9 @@ class TrackingService : LifecycleService() {
     private fun postInitialValues() {
         Log.d(TAG, "Posting initial values")
         isTracking.postValue(false)
-        pathPoints.postValue(mutableListOf()) // Initialize with an empty list
+        pathPoints.postValue(mutableListOf())
         timeRunInMillis.postValue(0L)
+        timeRunInSeconds.postValue(0L)
         distanceInMeters.postValue(0)
         speedInKMH.postValue(0f)
     }
@@ -97,6 +99,15 @@ class TrackingService : LifecycleService() {
             updateLocationTracking(it)
             updateNotificationTrackingState(it)
         }
+
+        timeRunInSeconds.observe(this, Observer {
+            if (!serviceKilled) {
+                val notification = curNotificationBuilder
+                    .setContentText(TrackingUtils.getFormattedStopWatchTime(it * 1000L))
+                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.notify(Constants.NOTIFICATION_ID, notification.build())
+            }
+        })
     }
 
     /**
@@ -105,9 +116,8 @@ class TrackingService : LifecycleService() {
     private fun killService() {
         Log.d(TAG, "Killing service")
         serviceKilled = true
-        pauseService()
+//        pauseService()
         serviceScope.launch(Dispatchers.IO) {
-            // Only save the trip if there are points recorded
             pathPoints.value?.let {
                 if (it.isNotEmpty() && it.last().isNotEmpty()) {
                     val trip = TripEntity(
@@ -122,6 +132,7 @@ class TrackingService : LifecycleService() {
             }
         }
         postInitialValues()
+        // Use STOP_FOREGROUND_REMOVE to dismiss the notification
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -154,30 +165,20 @@ class TrackingService : LifecycleService() {
         addEmptyPolyline()
         isTracking.postValue(true)
         timeStarted = System.currentTimeMillis()
-        lastSecondTimestamp = timeStarted
 
         serviceScope.launch {
             while (isTracking.value == true) {
                 lapTime = System.currentTimeMillis() - timeStarted
                 timeRunInMillis.postValue(timeRun + lapTime)
-
-                if (timeRunInMillis.value!! >= lastSecondTimestamp + 1000L) {
-                    val notificationManager =
-                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    curNotificationBuilder.setContentText(
-                        TrackingUtils.getFormattedStopWatchTime(timeRunInMillis.value!!)
-                    )
-                    notificationManager.notify(
-                        Constants.NOTIFICATION_ID,
-                        curNotificationBuilder.build()
-                    )
-                    lastSecondTimestamp += 1000L
+                if (timeRunInMillis.value!! >= (timeRunInSeconds.value!! * 1000L) + 1000L) {
+                    timeRunInSeconds.postValue(timeRunInSeconds.value!! + 1)
                 }
                 delay(50L)
             }
             timeRun += lapTime
         }
     }
+
 
     @SuppressLint("MissingPermission")
     private fun updateLocationTracking(isTracking: Boolean) {
@@ -189,7 +190,7 @@ class TrackingService : LifecycleService() {
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 Log.e(TAG, "Location permission not granted. Aborting location tracking.")
-                return // Stop if permissions are not granted
+                return
             }
 
             val isBackgroundTrackingEnabled =
@@ -228,9 +229,10 @@ class TrackingService : LifecycleService() {
                         if (distance < 10) { // Inactivity threshold (10 meters)
                             if (inactivityJob == null || !inactivityJob!!.isActive) {
                                 inactivityJob = serviceScope.launch {
-                                    delay(60000)
+                                    delay(10000)
                                     sendInactivityNotification()
-                                    pauseService() // Pause instead of killing the service
+                                    killService()
+//                                    pauseService() // Pause instead of killing the service
                                 }
                             }
                         } else {
@@ -264,10 +266,10 @@ class TrackingService : LifecycleService() {
             NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_INACTIVITY_ID)
                 .setAutoCancel(true)
                 .setSmallIcon(R.drawable.ic_run)
-                .setContentTitle("Tracking Paused")
-                .setContentText("Tracking was paused due to inactivity.")
+                .setContentTitle("Tracking Stopped")
+                .setContentText("Tracking stopped due to inactivity.")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .addAction(R.drawable.ic_run, "Resume", resumePendingIntent)
+                .addAction(R.drawable.ic_run, "Start Again", resumePendingIntent)
 
         notificationManager.notify(
             Constants.NOTIFICATION_INACTIVITY_ID,
@@ -313,6 +315,7 @@ class TrackingService : LifecycleService() {
         startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
     }
 
+    // ✅ REWRITTEN: This function now only handles the action button state
     private fun updateNotificationTrackingState(isTracking: Boolean) {
         val actionText = if (isTracking) "Pause" else "Resume"
         val intent = Intent(this, TrackingService::class.java).apply {
@@ -337,9 +340,7 @@ class TrackingService : LifecycleService() {
 
         if (!serviceKilled) {
             curNotificationBuilder.addAction(R.drawable.ic_pause, actionText, pendingIntent)
-            curNotificationBuilder.setContentText(
-                TrackingUtils.getFormattedStopWatchTime(timeRunInMillis.value ?: 0L)
-            )
+            // The setContentText call was removed from here
             notificationManager.notify(Constants.NOTIFICATION_ID, curNotificationBuilder.build())
         }
     }

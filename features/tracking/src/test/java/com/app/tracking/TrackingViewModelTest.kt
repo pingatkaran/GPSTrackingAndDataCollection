@@ -39,6 +39,4 @@ class TrackingViewModelTest {
         viewModel.saveTrip(trip)
         verify(tripRepository).insertTrip(trip)
     }
-
-    // ... other tests
 }
